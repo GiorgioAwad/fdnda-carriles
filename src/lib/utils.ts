@@ -24,6 +24,32 @@ export function formatHourLabel(value: string) {
   }).format(new Date(`2026-03-20T${value}:00`));
 }
 
+export function normalizeDateValue(value: string | Date | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  return String(value).slice(0, 10);
+}
+
+export function normalizeTimeValue(value: string | Date | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString().slice(11, 16);
+  }
+
+  const raw = String(value);
+  const match = raw.match(/\d{2}:\d{2}/);
+  return match ? match[0] : raw.slice(0, 5);
+}
+
 export function isoNow() {
   return new Date().toISOString();
 }

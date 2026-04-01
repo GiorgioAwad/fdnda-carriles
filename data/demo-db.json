@@ -23,7 +23,7 @@
     {
       "id": "pool_50",
       "type": "50m",
-      "name": "Piscina OlÃ­mpica 50m",
+      "name": "Piscina Olímpica 50m",
       "laneCount": 8,
       "startHour": "05:00",
       "endHour": "22:00"
@@ -166,19 +166,19 @@
     },
     {
       "id": "org_c1",
-      "name": "Club AcuÃ¡tico Lima",
+      "name": "Club Acuático Lima",
       "type": "club",
       "active": true
     },
     {
       "id": "org_c2",
-      "name": "Club PacÃ­fico",
+      "name": "Club Pacífico",
       "type": "club",
       "active": true
     },
     {
       "id": "org_s1",
-      "name": "SelecciÃ³n Mayor",
+      "name": "Selección Mayor",
       "type": "seleccionados",
       "active": true
     }
@@ -194,7 +194,7 @@
       "category": "academia",
       "organizationId": "org_a1",
       "swimmerCount": 10,
-      "notes": "TÃ©cnica de patada",
+      "notes": "Técnica de patada",
       "createdBy": "profile_staff",
       "updatedBy": "profile_staff",
       "createdAt": "2026-03-20T08:00:00.000Z",

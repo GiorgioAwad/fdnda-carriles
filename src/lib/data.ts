@@ -1,6 +1,6 @@
 ﻿import "server-only";
 
-import { generateId, isoNow } from "@/lib/utils";
+import { generateId, isoNow, normalizeDateValue, normalizeTimeValue } from "@/lib/utils";
 import { buildDashboardMetrics } from "@/lib/reports";
 import { hasDatabaseEnv } from "@/lib/env";
 import { getNeonSql } from "@/lib/neon";
@@ -94,8 +94,8 @@ function mapDbOrganization(row: DbRow): Organization {
 function mapDbAssignment(row: DbRow): LaneAssignment {
   return {
     id: String(row.id),
-    date: String(row.date),
-    hour: String(row.hour),
+    date: normalizeDateValue(row.date as string | Date | null | undefined),
+    hour: normalizeTimeValue(row.hour as string | Date | null | undefined),
     poolId: String(row.pool_id),
     laneId: String(row.lane_id),
     laneNumber: Number(row.lane_number),
