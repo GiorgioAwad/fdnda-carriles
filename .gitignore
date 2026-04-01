@@ -7,3 +7,6 @@ coverage
 dist
 *.log
 tsconfig.tsbuildinfo
+
+.vercel
+.env*.local

@@ -153,30 +153,6 @@
   ],
   "organizations": [
     {
-      "id": "org_a1",
-      "name": "Academia Tritones",
-      "type": "academia",
-      "active": true
-    },
-    {
-      "id": "org_a2",
-      "name": "Academia Delfines",
-      "type": "academia",
-      "active": true
-    },
-    {
-      "id": "org_c1",
-      "name": "Club Acuático Lima",
-      "type": "club",
-      "active": true
-    },
-    {
-      "id": "org_c2",
-      "name": "Club Pacífico",
-      "type": "club",
-      "active": true
-    },
-    {
       "id": "org_s1",
       "name": "Selección Mayor",
       "type": "seleccionados",
@@ -184,38 +160,6 @@
     }
   ],
   "laneAssignments": [
-    {
-      "id": "asg_1",
-      "date": "2026-03-20",
-      "hour": "08:00",
-      "poolId": "pool_50",
-      "laneId": "lane_50_1",
-      "laneNumber": 1,
-      "category": "academia",
-      "organizationId": "org_a1",
-      "swimmerCount": 10,
-      "notes": "Técnica de patada",
-      "createdBy": "profile_staff",
-      "updatedBy": "profile_staff",
-      "createdAt": "2026-03-20T08:00:00.000Z",
-      "updatedAt": "2026-03-20T08:00:00.000Z"
-    },
-    {
-      "id": "asg_2",
-      "date": "2026-03-20",
-      "hour": "08:00",
-      "poolId": "pool_50",
-      "laneId": "lane_50_2",
-      "laneNumber": 2,
-      "category": "club",
-      "organizationId": "org_c1",
-      "swimmerCount": 7,
-      "notes": "Velocidad",
-      "createdBy": "profile_staff",
-      "updatedBy": "profile_staff",
-      "createdAt": "2026-03-20T08:00:00.000Z",
-      "updatedAt": "2026-03-20T08:00:00.000Z"
-    },
     {
       "id": "asg_3",
       "date": "2026-03-20",
@@ -247,38 +191,6 @@
       "updatedBy": "profile_staff",
       "createdAt": "2026-03-20T09:00:00.000Z",
       "updatedAt": "2026-03-20T09:00:00.000Z"
-    },
-    {
-      "id": "asg_5",
-      "date": "2026-03-20",
-      "hour": "17:00",
-      "poolId": "pool_25",
-      "laneId": "lane_25_1",
-      "laneNumber": 1,
-      "category": "academia",
-      "organizationId": "org_a2",
-      "swimmerCount": 12,
-      "notes": "Nivel infantil",
-      "createdBy": "profile_staff",
-      "updatedBy": "profile_staff",
-      "createdAt": "2026-03-20T17:00:00.000Z",
-      "updatedAt": "2026-03-20T17:00:00.000Z"
-    },
-    {
-      "id": "asg_6",
-      "date": "2026-03-20",
-      "hour": "17:00",
-      "poolId": "pool_25",
-      "laneId": "lane_25_2",
-      "laneNumber": 2,
-      "category": "club",
-      "organizationId": "org_c2",
-      "swimmerCount": 8,
-      "notes": "Fondo",
-      "createdBy": "profile_staff",
-      "updatedBy": "profile_staff",
-      "createdAt": "2026-03-20T17:00:00.000Z",
-      "updatedAt": "2026-03-20T17:00:00.000Z"
     },
     {
       "id": "asg_k5yqfh4k",
