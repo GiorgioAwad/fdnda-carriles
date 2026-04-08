@@ -2,8 +2,8 @@
 
 import { startTransition, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Save, TimerReset, Waves, Users, BarChart3, X } from "lucide-react";
-import { saveAssignmentsAction } from "@/app/actions";
+import { CalendarRange, Save, TimerReset, Waves, Users, BarChart3, X, AlertTriangle } from "lucide-react";
+import { saveAssignmentsAction, saveMultiDayAssignmentsAction } from "@/app/actions";
 import { LiveRefresh } from "@/components/live-refresh";
 import { PoolLayout } from "@/components/pool/pool-layout";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,11 @@ export function StaffPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedLaneId, setSelectedLaneId] = useState<string | null>(null);
+  const [laneBatchCount, setLaneBatchCount] = useState(1);
+  const [multiDayMode, setMultiDayMode] = useState(false);
+  const [endDate, setEndDate] = useState(selectedDate);
+  const [extraHours, setExtraHours] = useState<string[]>([]);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const contextKey = `${selectedDate}-${selectedHour}-${board.pool.id}`;
   const [lastContext, setLastContext] = useState(contextKey);
@@ -50,6 +55,10 @@ export function StaffPanel({
       setIsDirty(false);
       setMessage(null);
       setSelectedLaneId(null);
+      setLaneBatchCount(1);
+      setMultiDayMode(false);
+      setEndDate(selectedDate);
+      setExtraHours([]);
     } else if (!isDirty) {
       // Same context, but server pushed new data (LiveRefresh) AND user is not editing
       setDraftLanes(board.lanes);
@@ -58,7 +67,11 @@ export function StaffPanel({
     setSelectedLaneId((current) =>
       current && board.lanes.some((lane) => lane.laneId === current) ? current : null
     );
-  }, [board, contextKey, lastContext, isDirty]);
+  }, [board, contextKey, lastContext, isDirty, selectedDate]);
+
+  useEffect(() => {
+    setLaneBatchCount(1);
+  }, [selectedLaneId]);
 
   function updateSearchParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -100,23 +113,39 @@ export function StaffPanel({
   function resetHour() {
     setDraftLanes(board.lanes);
     setIsDirty(false);
-    setMessage("Se restauró el bloque a la última versión guardada.");
+    setMessage("Se restauro el bloque a la ultima version guardada.");
+  }
+
+  const isMultiDay = multiDayMode && (endDate > selectedDate || extraHours.length > 0);
+  const multiDayCount = endDate > selectedDate
+    ? Math.round((new Date(endDate).getTime() - new Date(selectedDate).getTime()) / 86400000) + 1
+    : 1;
+  const selectedHours = availableHours.filter((hour) => hour === selectedHour || extraHours.includes(hour));
+  const totalBlocks = multiDayCount * selectedHours.length;
+
+  function buildAssignmentsPayload() {
+    return draftLanes.map((lane) => ({
+      laneId: lane.laneId,
+      laneNumber: lane.laneNumber,
+      category: lane.category,
+      organizationId: lane.organizationId,
+      swimmerCount: Number(lane.swimmerCount || 0),
+      notes: lane.notes
+    }));
   }
 
   async function persistBoard() {
+    if (isMultiDay) {
+      setShowConfirmation(true);
+      return;
+    }
+
     setIsSaving(true);
     const result = await saveAssignmentsAction({
       date: selectedDate,
       hour: selectedHour,
       poolId: board.pool.id,
-      assignments: draftLanes.map((lane) => ({
-        laneId: lane.laneId,
-        laneNumber: lane.laneNumber,
-        category: lane.category,
-        organizationId: lane.organizationId,
-        swimmerCount: Number(lane.swimmerCount || 0),
-        notes: lane.notes
-      }))
+      assignments: buildAssignmentsPayload()
     });
 
     setMessage(result.success ?? result.error ?? null);
@@ -125,6 +154,58 @@ export function StaffPanel({
       setIsDirty(false);
       router.refresh();
     }
+  }
+
+  async function confirmMultiDaySave() {
+    setShowConfirmation(false);
+    setIsSaving(true);
+    const result = await saveMultiDayAssignmentsAction({
+      startDate: selectedDate,
+      endDate: endDate > selectedDate ? endDate : selectedDate,
+      hours: selectedHours,
+      poolId: board.pool.id,
+      assignments: buildAssignmentsPayload()
+    });
+
+    setMessage(result.success ?? result.error ?? null);
+    setIsSaving(false);
+    if (result.success) {
+      setIsDirty(false);
+      setMultiDayMode(false);
+      setEndDate(selectedDate);
+      setExtraHours([]);
+      router.refresh();
+    }
+  }
+
+  function applySelectedLaneToRange() {
+    if (!selectedLane || selectedLaneIndex < 0) {
+      return;
+    }
+
+    const maxRange = draftLanes.length - selectedLaneIndex;
+    const rangeCount = Math.min(Math.max(laneBatchCount, 1), maxRange);
+    if (rangeCount <= 1) {
+      return;
+    }
+
+    const template = {
+      category: selectedLane.category,
+      organizationId: selectedLane.organizationId,
+      organizationName: selectedLane.organizationName,
+      swimmerCount: selectedLane.swimmerCount,
+      notes: selectedLane.notes
+    };
+
+    setIsDirty(true);
+    setDraftLanes((current) =>
+      current.map((lane, index) =>
+        index >= selectedLaneIndex && index < selectedLaneIndex + rangeCount
+          ? { ...lane, ...template }
+          : lane
+      )
+    );
+    setMessage(`Configuracion aplicada a ${rangeCount} carriles desde el carril ${selectedLane.laneNumber}.`);
   }
 
   const currentTotals = {
@@ -148,6 +229,8 @@ export function StaffPanel({
   const selectedLaneIndex = draftLanes.findIndex((lane) => lane.laneId === selectedLaneId);
   const selectedLane = selectedLaneIndex >= 0 ? draftLanes[selectedLaneIndex] : null;
   const selectedLaneStyle = selectedLane ? OCCUPANCY_STYLES[selectedLane.category] : null;
+  const maxLaneBatchCount = selectedLaneIndex >= 0 ? draftLanes.length - selectedLaneIndex : 1;
+  const resolvedLaneBatchCount = Math.min(Math.max(laneBatchCount, 1), maxLaneBatchCount);
   const organizationOptions = selectedLane
     ? organizations.filter((organization) => organization.type === selectedLane.category)
     : [];
@@ -170,9 +253,44 @@ export function StaffPanel({
 
           {/* Date + Pool selectors */}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-            <Field label="Fecha">
-              <Input type="date" value={selectedDate} onChange={(event) => updateSearchParam("date", event.target.value)} />
-            </Field>
+            <div className="grid gap-3">
+              <Field label={multiDayMode ? "Fecha desde" : "Fecha"}>
+                <Input type="date" value={selectedDate} onChange={(event) => updateSearchParam("date", event.target.value)} />
+              </Field>
+              <button
+                type="button"
+                onClick={() => {
+                  setMultiDayMode(!multiDayMode);
+                  if (!multiDayMode) setEndDate(selectedDate);
+                }}
+                className={cn(
+                  "flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-200",
+                  multiDayMode
+                    ? "bg-amber-100 text-amber-900 ring-1 ring-amber-200 shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                )}
+              >
+                <CalendarRange size={16} />
+                {multiDayMode ? "Reserva multiple activa" : "Reserva multiple"}
+              </button>
+              {multiDayMode ? (
+                <div className="animate-fade-in-up grid gap-2">
+                  <Field label="Fecha hasta">
+                    <Input
+                      type="date"
+                      value={endDate}
+                      min={selectedDate}
+                      onChange={(event) => setEndDate(event.target.value)}
+                    />
+                  </Field>
+                  {isMultiDay ? (
+                    <Badge className="bg-amber-100 text-amber-900 ring-amber-200 self-start">
+                      {multiDayCount} dias en el rango
+                    </Badge>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
             <div className="grid gap-2">
               <span className="text-sm font-medium text-slate-700">Piscina</span>
               <div className="grid grid-cols-2 gap-2">
@@ -197,24 +315,68 @@ export function StaffPanel({
 
           {/* Hour selector with gradient fade */}
           <div className="grid gap-2">
-            <span className="text-sm font-medium text-slate-700">Hora</span>
-            <div className="hour-scroll flex gap-2 overflow-x-auto pb-1">
-              {availableHours.map((hour) => (
-                <button
-                  key={hour}
-                  type="button"
-                  onClick={() => updateSearchParam("hour", hour)}
-                  className={cn(
-                    "whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
-                    hour === selectedHour
-                      ? "bg-surf text-white shadow-[0_4px_16px_rgba(15,139,168,0.35)] scale-105"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-105"
-                  )}
-                >
-                  {formatHourLabel(hour)}
-                </button>
-              ))}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-700">Hora</span>
+              {multiDayMode ? (
+                <Badge className="bg-amber-100 text-amber-900 ring-amber-200">
+                  {selectedHours.length} hora{selectedHours.length === 1 ? "" : "s"} incluidas
+                </Badge>
+              ) : null}
             </div>
+            {multiDayMode ? (
+              <p className="text-xs text-amber-700">
+                La hora visible se usa como referencia y siempre se incluye. Marca aqui las horas extra donde se replicara esta misma configuracion.
+              </p>
+            ) : null}
+            <div className="hour-scroll flex gap-2 overflow-x-auto pb-1">
+              {availableHours.map((hour) => {
+                const isCurrent = hour === selectedHour;
+                const isExtra = extraHours.includes(hour);
+                return (
+                  <button
+                    key={hour}
+                    type="button"
+                    onClick={() => {
+                      if (multiDayMode) {
+                        if (isCurrent) return;
+                        if (isExtra) {
+                          setExtraHours((prev) => prev.filter((h) => h !== hour));
+                        } else {
+                          setExtraHours((prev) => [...prev, hour]);
+                        }
+                      } else {
+                        updateSearchParam("hour", hour);
+                      }
+                    }}
+                    className={cn(
+                      "whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
+                      isCurrent
+                        ? "bg-surf text-white shadow-[0_4px_16px_rgba(15,139,168,0.35)] scale-105 ring-2 ring-cyan-200"
+                        : isExtra
+                          ? "bg-amber-200 text-amber-900 ring-1 ring-amber-300 scale-105"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-105"
+                    )}
+                  >
+                    {formatHourLabel(hour)}
+                  </button>
+                );
+              })}
+            </div>
+            {multiDayMode ? (
+              <div className="rounded-[20px] border border-amber-200 bg-amber-50/70 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-800">Horarios seleccionados</span>
+                  {selectedHours.map((hour) => (
+                    <Badge key={hour} className="bg-white text-amber-900 ring-amber-200">
+                      {formatHourLabel(hour)}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-amber-800">
+                  Se guardaran {multiDayCount} dia{multiDayCount === 1 ? "" : "s"} x {selectedHours.length} hora{selectedHours.length === 1 ? "" : "s"} = {totalBlocks} bloque{totalBlocks === 1 ? "" : "s"}.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           {/* Stats cards */}
@@ -237,7 +399,7 @@ export function StaffPanel({
               </div>
             </Card>
             <Card className="rounded-[24px] bg-gradient-to-br from-white to-cyan-50/80">
-              <p className="text-sm font-semibold text-slate-600">Resumen por categoría</p>
+              <p className="text-sm font-semibold text-slate-600">Resumen por categoria</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {Object.entries(currentTotals)
                   .filter(([key]) => key !== "swimmers")
@@ -260,14 +422,26 @@ export function StaffPanel({
           {/* Context info */}
           <div className="rounded-[24px] border border-slate-200 bg-gradient-to-r from-slate-50 to-white px-4 py-3 text-sm text-slate-600">
             <p className="font-semibold text-slate-800">{formatDateLabel(selectedDate)}</p>
-            <p className="mt-0.5">{formatHourLabel(selectedHour)} · toca un carril en la piscina y edita ese espacio desde el panel lateral.</p>
+            <p className="mt-0.5">
+              {formatHourLabel(selectedHour)} - toca un carril en la piscina y edita ese espacio desde el panel lateral.
+              {multiDayMode ? ` La configuracion se replicara en ${selectedHours.length} hora(s) seleccionada(s).` : ""}
+            </p>
           </div>
 
           {/* Action buttons */}
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
-            <Button type="button" onClick={() => void persistBoard()} className="h-12 gap-2" disabled={isSaving}>
+            <Button
+              type="button"
+              onClick={() => void persistBoard()}
+              className={cn("h-12 gap-2", isMultiDay && "ring-2 ring-amber-300")}
+              disabled={isSaving}
+            >
               <Save size={18} />
-              {isSaving ? "Guardando..." : "Guardar bloque horario"}
+              {isSaving
+                ? "Guardando..."
+                : isMultiDay
+                  ? `Guardar ${multiDayCount} dia(s) x ${selectedHours.length} hora(s)`
+                  : "Guardar bloque horario"}
             </Button>
             <Button type="button" variant="secondary" onClick={resetHour} className="h-12 gap-2">
               <TimerReset size={18} />
@@ -299,6 +473,95 @@ export function StaffPanel({
       </section>
 
       {/* Pop-up Lane Editor Modal */}
+      {/* Multi-day Confirmation Modal */}
+      {showConfirmation ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="relative w-full max-w-md grid content-start gap-5 shadow-[0_30px_60px_rgba(0,0,0,0.3)] animate-in zoom-in-95 duration-200 border-2 border-amber-200/70 bg-gradient-to-br from-amber-50 to-white">
+            <button
+              onClick={() => setShowConfirmation(false)}
+              className="absolute right-4 top-4 rounded-full p-2.5 text-slate-500 hover:bg-slate-200/50 hover:text-slate-800 transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="flex items-start gap-3 pr-10">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-ink">Confirmar reserva multiple</h3>
+                <p className="mt-1 text-sm text-slate-500">Se aplicara la misma configuracion a multiples fechas y horarios.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Piscina</span>
+                <span className="font-semibold text-ink">{board.pool.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Hora base</span>
+                <span className="font-semibold text-ink">{formatHourLabel(selectedHour)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Desde</span>
+                <span className="font-semibold text-ink">{formatDateLabel(selectedDate)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Hasta</span>
+                <span className="font-semibold text-ink">{formatDateLabel(endDate)}</span>
+              </div>
+              <div className="grid gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3">
+                <span className="text-slate-500">Horarios incluidos</span>
+                <div className="flex flex-wrap justify-end gap-2">
+                  {selectedHours.map((hour) => (
+                    <Badge key={hour} className="bg-amber-100 text-amber-900 ring-amber-200">
+                      {formatHourLabel(hour)}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-between border-t border-slate-200 pt-3">
+                <span className="text-slate-500">Total dias</span>
+                <Badge className="bg-amber-100 text-amber-900 ring-amber-200">{multiDayCount} dias</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total horas</span>
+                <Badge className="bg-cyan-100 text-cyan-900 ring-cyan-200">
+                  {selectedHours.length} hora{selectedHours.length === 1 ? "" : "s"}
+                </Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Carriles ocupados</span>
+                <Badge className="bg-emerald-100 text-emerald-900 ring-emerald-200">
+                  {occupiedLanes} carril{occupiedLanes === 1 ? "" : "es"}
+                </Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Bloques a sobrescribir</span>
+                <Badge className="bg-ink text-white ring-ink/10">
+                  {totalBlocks} bloque{totalBlocks === 1 ? "" : "s"}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Se sobrescribiran las asignaciones existentes en esas fechas y horarios para esta piscina.
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="secondary" onClick={() => setShowConfirmation(false)} className="h-12">
+                Cancelar
+              </Button>
+              <Button onClick={() => void confirmMultiDaySave()} className="h-12 gap-2" disabled={isSaving}>
+                <Save size={18} />
+                {isSaving ? "Guardando..." : "Confirmar"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
       {selectedLane && selectedLaneStyle ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <Card className={cn(
@@ -344,13 +607,13 @@ export function StaffPanel({
                 </Select>
               </Field>
 
-              <Field label="Organización" hint={selectedLane.category === "libre" ? "No aplica para libre" : "Para academia o selección"}>
+              <Field label="Organizacion" hint={selectedLane.category === "libre" ? "No aplica para libre" : "Para academia o seleccion"}>
                 <Select
                   value={selectedLane.organizationId ?? ""}
                   onChange={(event) => updateLane(selectedLaneIndex, { organizationId: event.target.value || null })}
                   disabled={selectedLane.category === "libre"}
                 >
-                  <option value="">Selecciona una organización...</option>
+                  <option value="">Selecciona una organizacion...</option>
                   {organizationOptions.map((organization) => (
                     <option key={organization.id} value={organization.id}>
                       {organization.name}
@@ -387,6 +650,29 @@ export function StaffPanel({
                   rows={2}
                 />
               </Field>
+
+              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white/70 p-4">
+                <Field label="Cantidad de carriles" hint="Replica esta misma configuracion desde el carril actual hacia adelante.">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={maxLaneBatchCount}
+                    value={resolvedLaneBatchCount}
+                    onChange={(event) => setLaneBatchCount(Number(event.target.value || 1))}
+                  />
+                </Field>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={applySelectedLaneToRange}
+                  className="h-11"
+                  disabled={resolvedLaneBatchCount <= 1}
+                >
+                  {resolvedLaneBatchCount <= 1
+                    ? "Selecciona mas de 1 carril"
+                    : `Aplicar a ${resolvedLaneBatchCount} carriles`}
+                </Button>
+              </div>
             </div>
 
             <Button onClick={() => setSelectedLaneId(null)} className="w-full mt-2 h-12 text-base shadow-md">

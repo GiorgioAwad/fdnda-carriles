@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   authenticateUser,
   saveHourAssignments,
+  saveMultiDayAssignments,
   saveOrganization,
   savePoolSettings,
   saveUser,
@@ -13,6 +14,7 @@ import {
 import { clearSession, requireSession, setSession } from "@/lib/session";
 import {
   hourAssignmentsSchema,
+  multiDayAssignmentsSchema,
   organizationSchema,
   poolSettingsSchema,
   signInSchema,
@@ -73,6 +75,41 @@ export async function saveAssignmentsAction(input: {
     revalidatePath("/admin");
     revalidatePath("/admin/reportes");
     return { success: "Bloque horario guardado." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "No se pudo guardar el bloque." };
+  }
+}
+
+export async function saveMultiDayAssignmentsAction(input: {
+  startDate: string;
+  endDate: string;
+  hours: string[];
+  poolId: string;
+  assignments: LaneAssignmentFormValue[];
+}): Promise<ActionState> {
+  const session = await requireSession();
+  const parsed = multiDayAssignmentsSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "No se pudo guardar el bloque." };
+  }
+
+  try {
+    await saveMultiDayAssignments(
+      parsed.data.startDate,
+      parsed.data.endDate,
+      parsed.data.hours,
+      parsed.data.poolId,
+      parsed.data.assignments,
+      session
+    );
+    revalidatePath("/staff");
+    revalidatePath("/admin");
+    revalidatePath("/admin/reportes");
+    const start = new Date(parsed.data.startDate);
+    const end = new Date(parsed.data.endDate);
+    const days = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+    const hourCount = parsed.data.hours.length;
+    return { success: `Bloque guardado para ${days} dia(s), ${hourCount} hora(s) y ${days * hourCount} bloque(s).` };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "No se pudo guardar el bloque." };
   }

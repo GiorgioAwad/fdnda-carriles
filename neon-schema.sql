@@ -48,6 +48,8 @@ create table if not exists public.lane_assignments (
   notes text not null default '',
   created_by text references public.profiles (id),
   updated_by text references public.profiles (id),
+  start_date date,
+  end_date date,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
   unique (date, hour, pool_id, lane_id)

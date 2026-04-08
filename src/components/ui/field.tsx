@@ -20,7 +20,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       className={cn(
-        "h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-surf focus:ring-2 focus:ring-surf/20 focus:shadow-[0_0_0_4px_rgba(15,139,168,0.08)] hover:border-slate-300",
+        "h-12 rounded-2xl border border-slate-200/80 bg-white/60 px-4 text-sm text-slate-900 outline-none backdrop-blur-sm transition-all duration-300 placeholder:text-slate-400 focus:bg-white focus:border-surf focus:ring-4 focus:ring-surf/10 hover:border-slate-300/80 hover:bg-white/80",
         props.className
       )}
       {...props}
@@ -32,7 +32,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       className={cn(
-        "h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition-all duration-200 focus:border-surf focus:ring-2 focus:ring-surf/20 focus:shadow-[0_0_0_4px_rgba(15,139,168,0.08)] hover:border-slate-300 disabled:bg-slate-50 disabled:text-slate-400",
+        "h-12 rounded-2xl border border-slate-200/80 bg-white/60 px-4 text-sm text-slate-900 outline-none backdrop-blur-sm transition-all duration-300 focus:bg-white focus:border-surf focus:ring-4 focus:ring-surf/10 hover:border-slate-300/80 hover:bg-white/80 disabled:bg-slate-50/50 disabled:text-slate-400 cursor-pointer appearance-none",
         props.className
       )}
       {...props}

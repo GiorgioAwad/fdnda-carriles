@@ -31,6 +31,17 @@ export const hourAssignmentsSchema = z.object({
   assignments: z.array(laneAssignmentSchema).min(1)
 });
 
+export const multiDayAssignmentsSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  hours: z.array(z.string().regex(/^\d{2}:\d{2}$/)).min(1),
+  poolId: z.string().min(1),
+  assignments: z.array(laneAssignmentSchema).min(1)
+}).refine(
+  (data) => data.startDate <= data.endDate,
+  { message: "La fecha de inicio debe ser anterior o igual a la fecha de fin." }
+);
+
 export const dashboardFiltersSchema = z.object({
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

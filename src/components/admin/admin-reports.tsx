@@ -50,7 +50,7 @@ function resolveCategoryLabel(value: unknown) {
 
 function EmptyPanel({ title, description }: { title: string; description: string }) {
   return (
-    <div className="flex h-full min-h-[220px] items-center justify-center rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 px-6 text-center">
+    <div className="flex h-full w-full min-h-[220px] items-center justify-center rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 px-6 py-6 text-center">
       <div className="max-w-sm">
         <p className="text-base font-bold text-ink">{title}</p>
         <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p>
@@ -230,13 +230,13 @@ export function AdminReports({ metrics, pools, organizations, filters }: AdminRe
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card className="rounded-[30px]">
+        <Card className="rounded-[30px] flex flex-col">
           <div className="mb-4">
             <p className="text-sm font-semibold text-surf">Ranking</p>
             <h3 className="text-xl font-black text-ink">Organizaciones con más demanda</h3>
           </div>
           {hasOrganizationData ? (
-            <div className="grid gap-3">
+            <div className="grid gap-3 flex-1">
               {metrics.organizationRanking.map((entry, index) => (
                 <div key={entry.organizationName} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
                   <div>
@@ -248,20 +248,22 @@ export function AdminReports({ metrics, pools, organizations, filters }: AdminRe
               ))}
             </div>
           ) : (
-            <EmptyPanel
-              title="Sin ranking disponible"
-              description="Aún no hay organizaciones con demanda registrada para este rango o estos filtros."
-            />
+            <div className="flex-1">
+              <EmptyPanel
+                title="Sin ranking disponible"
+                description="Aún no hay organizaciones con demanda registrada para este rango o estos filtros."
+              />
+            </div>
           )}
         </Card>
 
-        <Card className="rounded-[30px]">
+        <Card className="rounded-[30px] flex flex-col">
           <div className="mb-4">
             <p className="text-sm font-semibold text-surf">Mapa térmico</p>
             <h3 className="text-xl font-black text-ink">Piscina y hora</h3>
           </div>
           {hasHeatmapData ? (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 flex-1">
               {metrics.poolHeatmap.map((entry) => (
                 <div key={`${entry.poolName}-${entry.hour}`} className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-cyan-50 p-4">
                   <p className="text-sm font-semibold text-slate-500">{entry.poolName}</p>
@@ -276,10 +278,12 @@ export function AdminReports({ metrics, pools, organizations, filters }: AdminRe
               ))}
             </div>
           ) : (
-            <EmptyPanel
-              title="Sin mapa térmico"
-              description="Todavía no hay combinaciones de piscina y hora con ocupación para este rango."
-            />
+            <div className="flex-1">
+              <EmptyPanel
+                title="Sin mapa térmico"
+                description="Todavía no hay combinaciones de piscina y hora con ocupación para este rango."
+              />
+            </div>
           )}
         </Card>
       </div>

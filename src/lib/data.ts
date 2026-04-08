@@ -110,6 +110,8 @@ function mapDbAssignment(row: DbRow): LaneAssignment {
     organizationId: row.organization_id ? String(row.organization_id) : null,
     swimmerCount: Number(row.swimmer_count),
     notes: String(row.notes ?? ""),
+    startDate: row.start_date ? normalizeDateValue(row.start_date as string | Date | null | undefined) : null,
+    endDate: row.end_date ? normalizeDateValue(row.end_date as string | Date | null | undefined) : null,
     createdBy: String(row.created_by),
     updatedBy: String(row.updated_by),
     createdAt: String(row.created_at ?? isoNow()),
@@ -223,6 +225,8 @@ async function readAssignments() {
       organization_id,
       swimmer_count,
       notes,
+      start_date,
+      end_date,
       created_by,
       updated_by,
       created_at,
@@ -320,7 +324,9 @@ export async function getPoolBoard(date: string, hour: string, poolId: string): 
         ? organizationById.get(assignment.organizationId)?.name ?? null
         : null,
       swimmerCount: assignment?.swimmerCount ?? 0,
-      notes: assignment?.notes ?? ""
+      notes: assignment?.notes ?? "",
+      startDate: assignment?.startDate ?? null,
+      endDate: assignment?.endDate ?? null
     };
   });
 
@@ -348,8 +354,12 @@ export async function saveHourAssignments(
   hour: string,
   poolId: string,
   assignments: LaneAssignmentFormValue[],
-  actor: SessionUser
+  actor: SessionUser,
+  startDate?: string,
+  endDate?: string
 ) {
+  const resolvedStartDate = startDate ?? date;
+  const resolvedEndDate = endDate ?? date;
   const now = isoNow();
   const persistedAssignments = assignments.filter(
     (assignment) =>
@@ -378,6 +388,8 @@ export async function saveHourAssignments(
       organizationId: assignment.organizationId,
       swimmerCount: assignment.swimmerCount,
       notes: assignment.notes,
+      startDate: resolvedStartDate,
+      endDate: resolvedEndDate,
       createdBy: actor.id,
       updatedBy: actor.id,
       createdAt: now,
@@ -410,6 +422,8 @@ export async function saveHourAssignments(
           organization_id,
           swimmer_count,
           notes,
+          start_date,
+          end_date,
           created_by,
           updated_by,
           created_at,
@@ -426,6 +440,8 @@ export async function saveHourAssignments(
           ${assignment.organizationId},
           ${assignment.swimmerCount},
           ${assignment.notes},
+          ${resolvedStartDate},
+          ${resolvedEndDate},
           ${actor.id},
           ${actor.id},
           ${now},
@@ -436,6 +452,29 @@ export async function saveHourAssignments(
 
     return queries;
   });
+}
+
+export async function saveMultiDayAssignments(
+  startDate: string,
+  endDate: string,
+  hours: string[],
+  poolId: string,
+  assignments: LaneAssignmentFormValue[],
+  actor: SessionUser
+) {
+  const dates: string[] = [];
+  const current = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  while (current <= end) {
+    dates.push(current.toISOString().slice(0, 10));
+    current.setDate(current.getDate() + 1);
+  }
+
+  for (const date of dates) {
+    for (const hour of hours) {
+      await saveHourAssignments(date, hour, poolId, assignments, actor, startDate, endDate);
+    }
+  }
 }
 
 export async function getDashboard(filters: DashboardFilters) {

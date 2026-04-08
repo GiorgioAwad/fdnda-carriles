@@ -290,11 +290,11 @@ export function AdminOverview({ boards, metrics, selectedDate, selectedHour, ava
                     caption="Piscina supervisada"
                     rightLabel={`${board.totals.swimmers} nadadores`}
                   />
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
-                    <Badge className="justify-center bg-cyan-100 text-cyan-900 ring-cyan-200">Academia: {board.totals.byCategory.academia}</Badge>
-                    <Badge className="justify-center bg-blue-100 text-blue-900 ring-blue-200">Club: {board.totals.byCategory.club}</Badge>
-                    <Badge className="justify-center bg-amber-100 text-amber-900 ring-amber-200">Seleccionados: {board.totals.byCategory.seleccionados}</Badge>
-                    <Badge className="justify-center bg-emerald-100 text-emerald-900 ring-emerald-200">Libre: {board.totals.byCategory.libre}</Badge>
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
+                    <Badge className="px-3 py-1.5 text-[13px] bg-cyan-100 text-cyan-900 ring-cyan-200/60 shadow-sm">Academia: {board.totals.byCategory.academia}</Badge>
+                    <Badge className="px-3 py-1.5 text-[13px] bg-blue-100 text-blue-900 ring-blue-200/60 shadow-sm">Club: {board.totals.byCategory.club}</Badge>
+                    <Badge className="px-3 py-1.5 text-[13px] bg-amber-100 text-amber-900 ring-amber-200/60 shadow-sm">Seleccionados: {board.totals.byCategory.seleccionados}</Badge>
+                    <Badge className="px-3 py-1.5 text-[13px] bg-emerald-100 text-emerald-900 ring-emerald-200/60 shadow-sm">Libre: {board.totals.byCategory.libre}</Badge>
                   </div>
                 </Card>
               ))}

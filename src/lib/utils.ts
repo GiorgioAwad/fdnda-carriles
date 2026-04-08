@@ -70,6 +70,13 @@ export function uniqueBy<T>(items: T[], selector: (item: T) => string) {
   return Array.from(map.values());
 }
 
+export function formatShortDateRange(start: string, end: string) {
+  const s = new Date(`${start}T00:00:00`);
+  const e = new Date(`${end}T00:00:00`);
+  const df = new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short" });
+  return `${df.format(s)} – ${df.format(e)}`;
+}
+
 export function buildHourRange(startHour: string, endHour: string) {
   const start = Number.parseInt(startHour.split(":")[0] ?? "0", 10);
   const end = Number.parseInt(endHour.split(":")[0] ?? "0", 10);

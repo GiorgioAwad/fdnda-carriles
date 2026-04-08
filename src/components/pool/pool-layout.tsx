@@ -3,7 +3,7 @@
 import { UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { OCCUPANCY_LABELS, OCCUPANCY_STYLES, POOL_TYPE_LABELS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, formatShortDateRange } from "@/lib/utils";
 import type { Pool, PoolBoard } from "@/lib/types";
 
 type PoolLane = PoolBoard["lanes"][number];
@@ -114,10 +114,17 @@ export function PoolLayout({
 
                   {/* Lane Water Content */}
                   <div className="relative z-10 flex flex-1 items-center justify-between px-3 md:px-5">
-                    <span className="truncate text-xs font-semibold text-white drop-shadow-md lg:text-sm">
-                      {lane.organizationName ?? (emptyLane ? "" : OCCUPANCY_LABELS[lane.category])}
-                    </span>
-                    
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate text-xs font-semibold text-white drop-shadow-md lg:text-sm">
+                        {lane.organizationName ?? (emptyLane ? "" : OCCUPANCY_LABELS[lane.category])}
+                      </span>
+                      {lane.startDate && lane.endDate && lane.startDate !== lane.endDate ? (
+                        <span className="truncate text-[10px] font-medium text-white/80 drop-shadow-md">
+                          {formatShortDateRange(lane.startDate, lane.endDate)}
+                        </span>
+                      ) : null}
+                    </div>
+
                     {lane.swimmerCount > 0 ? (
                       <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-ink/50 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm backdrop-blur-sm md:px-2.5 md:py-1 md:text-xs">
                         <UsersRound size={compact ? 12 : 14} />

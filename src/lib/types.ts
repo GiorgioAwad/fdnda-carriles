@@ -47,6 +47,8 @@ export interface LaneAssignment {
   organizationId: string | null;
   swimmerCount: number;
   notes: string;
+  startDate: string | null;
+  endDate: string | null;
   createdBy: string;
   updatedBy: string;
   createdAt: string;
@@ -72,6 +74,8 @@ export interface LaneAssignmentFormValue {
 export interface LaneAssignmentView extends LaneAssignmentFormValue {
   laneLabel: string;
   organizationName: string | null;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 export interface PoolBoard {
